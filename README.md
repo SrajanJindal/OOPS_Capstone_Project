@@ -1,6 +1,5 @@
 # OOPS_Capstone_Project
 
-
 # 🛍️ eBay Clone (Java Swing)
 
 A desktop-based clone of eBay, built using Java Swing for the GUI and Java IO for local data storage. This is a simple auction and marketplace simulation application designed for learning and practice.
@@ -53,7 +52,7 @@ eBay_Clone_Java_Swing/
 - User credentials are stored in a local text file.
 - You must register before you can log in.
 
-## 💡 TODO
+## 💡 TO DO
 
 - Add product catalog
 - Implement bidding system
