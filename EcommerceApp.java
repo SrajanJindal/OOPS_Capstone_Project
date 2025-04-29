@@ -1,3 +1,72 @@
+/*# Mini E-Commerce Store Application
+
+This Java code creates a simple graphical user interface (GUI) for a mini e-commerce store. It allows users to browse a list of products and add them to a virtual shopping cart.
+
+## Functionality
+
+The application features two main pages, managed using a `CardLayout`:
+
+1.  Home Page:
+    * Displays a title "Online Marketplace".
+    * Presents a table of available products with the following columns:
+        * **Product:** The name of the product (e.g., T-Shirt, Headphones).
+        * **Price:** The price of the product in Indian Rupees (₹).
+        * **Add to Cart:** A button in each row that allows the user to add the corresponding product to their cart.
+    * When the "Add" button for a product is clicked:
+        * The product is added to an `ArrayList` representing the shopping cart.
+        * A confirmation message (e.g., "T-Shirt added to cart!") is displayed using a `JOptionPane`.
+    * Includes a "View Cart" button at the bottom. Clicking this button navigates the user to the Cart Page.
+
+2.  Cart Page:
+    * Displays a title "Your Cart".
+    * Shows a table listing the products currently in the shopping cart. The table has two columns:
+        * **Product:** The name of the product.
+        * **Price:** The price of the product.
+    * Includes a "Back to Shopping" button that navigates the user back to the Home Page.
+    * Includes a "Checkout" button. Clicking this button:
+        * Displays a "Order Placed Successfully!" message using a `JOptionPane`.
+        * Clears the shopping cart.
+        * Navigates the user back to the Home Page.
+
+## Structure
+
+The code is organized into a single class, `EcommerceApp`, which extends `JFrame`. It utilizes various Swing components for creating the UI:
+
+* `JFrame`: The main window of the application.
+* `JPanel`: Used as containers to organize other components.
+* `JLabel`: Displays text information like titles.
+* `JButton`: Interactive buttons for adding to cart, viewing cart, going back to shopping, and checking out.
+* `JTable`: Displays the list of products on the Home Page and the items in the Cart Page.
+* `DefaultTableModel`: Manages the data displayed in the `JTable`.
+* `JScrollPane`: Provides scrollability for the product table and cart table if the content exceeds the display area.
+* `CardLayout`: Manages the switching between the Home and Cart panels.
+* `BorderLayout`: Used to arrange components within panels.
+* `Color`, `Font`, `BorderFactory`: Used for styling the appearance of components.
+* `JOptionPane`: Used to display confirmation and success messages.
+* `ArrayList`: Used to store the products added to the shopping cart.
+
+The code also includes inner classes:
+
+* `Product`: A simple class to represent a product with a name and price.
+* `ButtonRenderer`: A custom table cell renderer to display buttons in the "Add to Cart" column of the product table.
+* `ButtonEditor`: A custom table cell editor to handle the click events of the "Add to Cart" buttons and add the corresponding product to the cart.
+
+## How to Run
+
+1.  Save the code as `EcommerceApp.java`.
+2.  Compile the code using a Java compiler: `javac EcommerceApp.java`
+3.  Run the compiled class: `java EcommerceApp`
+
+This will open the GUI application, allowing you to browse products, add them to the cart, view the cart, and simulate a checkout process.
+
+## Limitations
+
+* This is a very basic implementation of an e-commerce store.
+* Only a limited number of products are hardcoded.
+* The cart functionality is simple, without features like removing items or adjusting quantities.
+* The checkout process is simulated and does not involve any actual payment or order processing.
+* The UI design is basic and for demonstration purposes.*/
+
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
