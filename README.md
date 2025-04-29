@@ -15,14 +15,18 @@ A desktop-based clone of eBay, built using Java Swing for the GUI and Java IO fo
 ## 📁 Project Structure
 
 ```
-eBay_Clone_Java_Swing/
-├── Main.java
-├── gui/
-│   └── LoginScreen.java
-├── storage/
-│   └── DataStore.java
-└── model/
-    └── [Optional future classes for Product, User, etc.]
+OOPS_Capstone_Project/
+├── contributions/
+│   ├── EbayClone.java
+│   └── OrderFormSwing.java
+├── src/
+│   ├── app/
+│   │   ├── EcommerceApp.java
+│   │   ├── MarketplaceApp.java
+│   ├── ui/
+│   │   └── MaketplaceUI.java
+├── README.md
+
 ```
 
 ## 🚀 How to Run
