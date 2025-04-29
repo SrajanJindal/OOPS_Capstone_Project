@@ -9,6 +9,8 @@
 - Role-based access in the main application window  
 - Uses a simple in-memory database for data storage (no external database setup required)  
 - Basic Java GUI and logic separation principles
+
+CONTRIBUTED BY VANSH BHASIN
 */
 
 
