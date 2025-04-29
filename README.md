@@ -19,6 +19,7 @@ OOPS_Capstone_Project/
 ├── contributions/
 │   ├── EbayClone.java
 │   └── OrderFormSwing.java
+│   └── ShoppingManagerSystem.java
 ├── src/
 │   ├── app/
 │   │   ├── EcommerceApp.java
