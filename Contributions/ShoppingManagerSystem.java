@@ -1,4 +1,6 @@
 /*
+CONTRIBUTED BY VANSH BHASIN
+
 - Java-based Shopping Management System  
 - GUI built using Swing  
 - Features include:
@@ -10,7 +12,6 @@
 - Uses a simple in-memory database for data storage (no external database setup required)  
 - Basic Java GUI and logic separation principles
 
-CONTRIBUTED BY VANSH BHASIN
 */
 
 
