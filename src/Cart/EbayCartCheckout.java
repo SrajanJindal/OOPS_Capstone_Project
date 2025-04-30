@@ -51,6 +51,7 @@ This will open the GUI application, allowing you to interact with the simulated 
 * The UI design is basic and for demonstration purposes.*/
 
 
+//updated and fixed
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
