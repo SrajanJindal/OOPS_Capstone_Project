@@ -1,11 +1,17 @@
+// new updated code with most the fuctionality in it 
+// updated 02-05  21:27
+
+
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableCellRenderer;
+import javax.swing.table.TableCellEditor;
 import java.awt.*;
 import java.awt.event.*;
-import java.sql.*; // For database connectivity
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List; // Use List interface
+import java.util.List;
 
 public class MarketplaceApp extends JFrame {
     CardLayout cardLayout;
@@ -28,8 +34,7 @@ public class MarketplaceApp extends JFrame {
             System.out.println("Connected to the database!");
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(this, "Database connection failed: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-            // Consider exiting the application if the database connection is crucial.
-            e.printStackTrace(); // Good practice to print the stack trace for debugging.
+            e.printStackTrace();
         }
 
         populateProducts();
@@ -42,16 +47,15 @@ public class MarketplaceApp extends JFrame {
 
         mainPanel.add(homePage(), "Home");
         mainPanel.add(cartPage(), "Cart");
+        mainPanel.add(auctionPage(), "Auction");
 
         add(mainPanel, BorderLayout.CENTER);
         setVisible(true);
     }
 
     private void populateProducts() {
-        // Clear existing data
         categoryProducts.clear();
 
-        // Initialize categories (ensure these match your database)
         categoryProducts.put("Electronics", new ArrayList<>());
         categoryProducts.put("Clothing", new ArrayList<>());
         categoryProducts.put("Home & Garden", new ArrayList<>());
@@ -59,7 +63,6 @@ public class MarketplaceApp extends JFrame {
 
         try {
             if (connection != null) {
-                // Fetch products from the database
                 String query = "SELECT * FROM products";
                 Statement statement = connection.createStatement();
                 ResultSet resultSet = statement.executeQuery(query);
@@ -68,10 +71,9 @@ public class MarketplaceApp extends JFrame {
                     String category = resultSet.getString("category");
                     String name = resultSet.getString("name");
                     String price = resultSet.getString("price");
-                    int productId = resultSet.getInt("id"); // Fetch the product ID
-                    // Fetch the is_auction column.  If it's 1, then isAuction is true.
+                    int productId = resultSet.getInt("id");
                     boolean isAuction = resultSet.getInt("is_auction") == 1;
-                    Product product = new Product(name, price, isAuction, productId); // Store the ID
+                    Product product = new Product(name, price, isAuction, productId);
                     categoryProducts.get(category).add(product);
                 }
                 resultSet.close();
@@ -94,7 +96,7 @@ public class MarketplaceApp extends JFrame {
 
         JPanel navPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 30, 10));
         navPanel.setBackground(Color.WHITE);
-        String[] navItems = {"Buy", "Sell", "Bet&Buy"};
+        String[] navItems = {"Buy", "Sell", "Auction"};
         for (String item : navItems) {
             JButton navButton = new JButton(item);
             navButton.setFocusPainted(false);
@@ -105,15 +107,13 @@ public class MarketplaceApp extends JFrame {
             navButton.addActionListener(e -> {
                 if (item.equals("Sell")) {
                     userRole = "seller";
-                    cardLayout.show(mainPanel, "Sell"); //show the Sell Panel
+                    cardLayout.show(mainPanel, "Sell");
                 } else if (item.equals("Buy")) {
                     userRole = "buyer";
                     cardLayout.show(mainPanel, "Home");
-                } else if (item.equals("Bet&Buy")) {
-                    userRole = "buyer"; //or seller, depending on your logic
-                    cardLayout.show(mainPanel, "Home");
-                } else {
-                    JOptionPane.showMessageDialog(this, item + " page clicked!");
+                } else if (item.equals("Auction")) {
+                    userRole = "buyer";
+                    cardLayout.show(mainPanel, "Auction");
                 }
             });
             navPanel.add(navButton);
@@ -138,7 +138,6 @@ public class MarketplaceApp extends JFrame {
         searchButton.setBackground(Color.LIGHT_GRAY);
         searchButton.addActionListener(e -> {
             String searchText = searchField.getText().toLowerCase();
-            //create a new JPanel to display search results
             JPanel searchResultsPanel = new JPanel(new BorderLayout());
             searchResultsPanel.setBackground(Color.WHITE);
             JLabel titleLabel = new JLabel("Search Results for \"" + searchText + "\"", SwingConstants.CENTER);
@@ -151,11 +150,10 @@ public class MarketplaceApp extends JFrame {
             searchTable.setFont(new Font("Arial", Font.PLAIN, 18));
             searchTable.getTableHeader().setFont(new Font("Arial", Font.BOLD, 18));
             searchTable.getColumn("Add to Cart").setCellRenderer(new ButtonRenderer());
-            searchTable.getColumn("Add to Cart").setCellEditor(new ButtonEditor());
+            searchTable.getColumn("Add to Cart").setCellEditor(new ButtonEditor(searchTable)); // Pass searchTable
             JScrollPane searchScrollPane = new JScrollPane(searchTable);
             searchResultsPanel.add(searchScrollPane, BorderLayout.CENTER);
 
-            //search the products
             for (List<Product> productList : categoryProducts.values()) {
                 for (Product product : productList) {
                     if (product.name.toLowerCase().contains(searchText)) {
@@ -165,11 +163,10 @@ public class MarketplaceApp extends JFrame {
             }
             if (searchTableModel.getRowCount() == 0) {
                 JOptionPane.showMessageDialog(this, "No products found matching your search.", "No Results", JOptionPane.INFORMATION_MESSAGE);
-                return; // Exit the search
+                return;
             }
             mainPanel.add(searchResultsPanel, "Search Results");
             cardLayout.show(mainPanel, "Search Results");
-
         });
 
         searchPanel.add(searchField);
@@ -211,9 +208,38 @@ public class MarketplaceApp extends JFrame {
         }
 
         panel.add(categoryPanel, BorderLayout.SOUTH);
-        //add the Sell Panel to the mainPanel
         mainPanel.add(sellPage(), "Sell");
         return panel;
+    }
+
+    private JPanel auctionPage() {
+        JPanel auctionPanel = new JPanel(new BorderLayout());
+        auctionPanel.setBackground(Color.WHITE);
+
+        JLabel title = new JLabel("Auction Items", JLabel.CENTER);
+        title.setFont(new Font("Arial", Font.BOLD, 30));
+        title.setBorder(BorderFactory.createEmptyBorder(20, 0, 20, 0));
+        auctionPanel.add(title, BorderLayout.NORTH);
+
+        DefaultTableModel auctionTableModel = new DefaultTableModel(new String[]{"Product", "Current Bid", "Place Bid"}, 0);
+        JTable auctionTable = new JTable(auctionTableModel);
+        auctionTable.setRowHeight(40);
+        auctionTable.setFont(new Font("Arial", Font.PLAIN, 18));
+        auctionTable.getTableHeader().setFont(new Font("Arial", Font.BOLD, 18));
+        auctionTable.getColumn("Place Bid").setCellRenderer(new ButtonRenderer());
+        auctionTable.getColumn("Place Bid").setCellEditor(new ButtonEditor(auctionTable, auctionTableModel)); // Pass auctionTable and model
+        JScrollPane auctionScrollPane = new JScrollPane(auctionTable);
+        auctionPanel.add(auctionScrollPane, BorderLayout.CENTER);
+
+        for (List<Product> productList : categoryProducts.values()) {
+            for (Product product : productList) {
+                if (product.isAuction) {
+                    auctionTableModel.addRow(new Object[]{product.name, product.price, "Bid"});
+                }
+            }
+        }
+
+        return auctionPanel;
     }
 
     private JPanel sellPage() {
@@ -225,7 +251,7 @@ public class MarketplaceApp extends JFrame {
         titleLabel.setBorder(BorderFactory.createEmptyBorder(20, 0, 20, 0));
         sellPanel.add(titleLabel, BorderLayout.NORTH);
 
-        JPanel formPanel = new JPanel(new GridLayout(5, 2, 10, 10)); // 5 rows, 2 columns
+        JPanel formPanel = new JPanel(new GridLayout(5, 2, 10, 10));
         formPanel.setBackground(Color.WHITE);
         formPanel.setBorder(BorderFactory.createEmptyBorder(20, 50, 20, 50));
 
@@ -247,14 +273,66 @@ public class MarketplaceApp extends JFrame {
 
         JLabel descriptionLabel = new JLabel("Description:");
         descriptionLabel.setFont(new Font("Arial", Font.PLAIN, 18));
-        JTextArea descriptionArea = new JTextArea(5, 20); // 5 rows, 20 columns
+        JTextArea descriptionArea = new JTextArea(5, 20);
         descriptionArea.setFont(new Font("Arial", Font.PLAIN, 18));
         JScrollPane descriptionScrollPane = new JScrollPane(descriptionArea);
 
         JLabel isAuctionLabel = new JLabel("Auction Item:");
         isAuctionLabel.setFont(new Font("Arial", Font.PLAIN, 18));
         JCheckBox isAuctionCheckBox = new JCheckBox();
-        isAuctionCheckBox.setFont(new Font("Arial", Font.PLAIN, 18));
+        isAuctionCheckBox.setBackground(Color.WHITE);
+
+        JButton submitButton = new JButton("Submit");
+        submitButton.setFont(new Font("Arial", Font.BOLD, 18));
+        submitButton.setBackground(new Color(0, 100, 210));
+        submitButton.setForeground(Color.WHITE);
+        submitButton.setFocusPainted(false);
+        submitButton.addActionListener(e -> {
+            String name = nameField.getText();
+            String category = (String) categoryComboBox.getSelectedItem();
+            String price = priceField.getText();
+            String description = descriptionArea.getText();
+            boolean isAuction = isAuctionCheckBox.isSelected();
+
+            try {
+                if (connection != null) {
+                    String query = "INSERT INTO products (name, category, price, description, is_auction) VALUES (?, ?, ?, ?, ?)";
+                    PreparedStatement preparedStatement = connection.prepareStatement(query);
+                    preparedStatement.setString(1, name);
+                    preparedStatement.setString(2, category);
+                    preparedStatement.setString(3, price);
+                    preparedStatement.setString(4, description);
+                    preparedStatement.setBoolean(5, isAuction);
+                    preparedStatement.executeUpdate();
+                    preparedStatement.close();
+
+                    // Add the product to the appropriate section
+                    Product newProduct = new Product(name, price, isAuction, -1); // -1 for ID since it's not fetched here
+                    List<Product> categoryList = categoryProducts.get(category);
+                    if (categoryList == null) {
+                        categoryList = new ArrayList<>();
+                        categoryProducts.put(category, categoryList);
+                    }
+                    categoryList.add(newProduct);
+
+                    if (isAuction) {
+                        JOptionPane.showMessageDialog(this, "Product added to Auction successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                    } else {
+                        JOptionPane.showMessageDialog(this, "Product added to Buy section successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                    }
+
+                    populateProducts(); // Refresh the product lists
+                    nameField.setText("");
+                    priceField.setText("");
+                    descriptionArea.setText("");
+                    isAuctionCheckBox.setSelected(false);
+
+                }
+            } catch (SQLException ex) {
+                JOptionPane.showMessageDialog(this, "Error adding product: " + ex.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+                ex.printStackTrace();
+            }
+        });
 
         formPanel.add(nameLabel);
         formPanel.add(nameField);
@@ -268,140 +346,12 @@ public class MarketplaceApp extends JFrame {
         formPanel.add(isAuctionCheckBox);
 
         sellPanel.add(formPanel, BorderLayout.CENTER);
-
-        JButton sellButton = new JButton("List Product");
-        sellButton.setFont(new Font("Arial", Font.BOLD, 20));
-        sellButton.setBackground(new Color(46, 204, 113));
-        sellButton.setForeground(Color.white);
-        sellButton.setFocusPainted(false);
-        sellButton.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
-        sellButton.addActionListener(e -> {
-            String name = nameField.getText();
-            String category = (String) categoryComboBox.getSelectedItem();
-            String price = priceField.getText();
-            String description = descriptionArea.getText();
-            boolean isAuction = isAuctionCheckBox.isSelected();
-
-            if (name.isEmpty() || price.isEmpty() || description.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Please fill in all fields.", "Error", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-
-            try {
-                double priceValue = Double.parseDouble(price);
-                if (priceValue <= 0) {
-                    JOptionPane.showMessageDialog(this, "Price must be greater than zero.", "Error", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-            } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(this, "Invalid price format.", "Error", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-
-            // Insert into database
-            try {
-                if (connection != null) {
-                    String insertQuery = "INSERT INTO products (name, category, price, description, is_auction) VALUES (?, ?, ?, ?, ?)";
-                    PreparedStatement preparedStatement = connection.prepareStatement(insertQuery);
-                    preparedStatement.setString(1, name);
-                    preparedStatement.setString(2, category);
-                    preparedStatement.setString(3, price);
-                    preparedStatement.setString(4, description);
-                    preparedStatement.setInt(5, isAuction ? 1 : 0); // Store 1 for true, 0 for false.
-                    preparedStatement.executeUpdate();
-                    preparedStatement.close();
-                    JOptionPane.showMessageDialog(this, "Product listed successfully!");
-
-                    // Clear the form
-                    nameField.setText("");
-                    priceField.setText("");
-                    descriptionArea.setText("");
-                    isAuctionCheckBox.setSelected(false);
-                    populateProducts(); // Refresh product lists
-                    cardLayout.show(mainPanel, "Home"); // Go back to home page
-                }
-            } catch (SQLException ex) {
-                JOptionPane.showMessageDialog(this, "Error listing product: " + ex.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
-                ex.printStackTrace();
-            }
-        });
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        buttonPanel.setBackground(Color.WHITE);
-        buttonPanel.add(sellButton);
-        sellPanel.add(buttonPanel, BorderLayout.SOUTH);
+        sellPanel.add(submitButton, BorderLayout.SOUTH);
 
         return sellPanel;
     }
-
-    private void showProductsForCategory(String category) {
-        JPanel productPanel = new JPanel(new BorderLayout());
-        productPanel.setBackground(Color.WHITE);
-
-        JLabel title = new JLabel("Products in " + category, JLabel.CENTER);
-        title.setFont(new Font("Arial", Font.BOLD, 30));
-        title.setBorder(BorderFactory.createEmptyBorder(20, 0, 20, 0));
-        productPanel.add(title, BorderLayout.NORTH);
-
-        List<Product> products = categoryProducts.getOrDefault(category, new ArrayList<>());
-
-        String[] columns = {"Product", "Price", "Add to Cart"};
-        if (userRole.equals("buyer")) {
-            columns = new String[]{"Product", "Price", "Add to Cart"};
-        } else if (userRole.equals("seller")) {
-            columns = new String[]{"Product", "Price"};
-        }
-
-        DefaultTableModel model = new DefaultTableModel(columns, 0);
-
-        for (Product p : products) {
-            if (userRole.equals("buyer")) {
-                model.addRow(new Object[]{p.name, p.price, "Add"});
-            } else if (userRole.equals("seller")) {
-                model.addRow(new Object[]{p.name, p.price});
-            }
-        }
-
-        JTable table = new JTable(model);
-        table.setRowHeight(40);
-        table.setFont(new Font("Arial", Font.PLAIN, 18));
-        table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 18));
-        if (userRole.equals("buyer")) {
-            table.getColumn("Add to Cart").setCellRenderer(new ButtonRenderer());
-            table.getColumn("Add to Cart").setCellEditor(new ButtonEditor());
-        }
-
-        JScrollPane scrollPane = new JScrollPane(table);
-        productPanel.add(scrollPane, BorderLayout.CENTER);
-
-        if (userRole.equals("buyer")) {
-            JButton viewCart = new JButton("View Cart");
-            viewCart.setFont(new Font("Arial", Font.BOLD, 20));
-            viewCart.setBackground(new Color(52, 152, 219));
-            viewCart.setForeground(Color.white);
-            viewCart.setFocusPainted(false);
-            viewCart.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
-
-            viewCart.addActionListener(e -> {
-                refreshCartPage();
-                cardLayout.show(mainPanel, "Cart");
-            });
-
-            JPanel bottom = new JPanel();
-            bottom.setBackground(Color.WHITE);
-            bottom.add(viewCart);
-            productPanel.add(bottom, BorderLayout.SOUTH);
-        }
-
-        mainPanel.add(productPanel, category);
-        cardLayout.show(mainPanel, category);
-    }
-
-    private JPanel cartPanel;
-    private JTable cartTable;
-    private DefaultTableModel cartModel;
-
     private JPanel cartPage() {
-        cartPanel = new JPanel(new BorderLayout());
+        JPanel cartPanel = new JPanel(new BorderLayout());
         cartPanel.setBackground(Color.WHITE);
 
         JLabel title = new JLabel("Your Cart", JLabel.CENTER);
@@ -409,227 +359,231 @@ public class MarketplaceApp extends JFrame {
         title.setBorder(BorderFactory.createEmptyBorder(20, 0, 20, 0));
         cartPanel.add(title, BorderLayout.NORTH);
 
-        String[] columns = {"Product", "Price"};
-        cartModel = new DefaultTableModel(columns, 0);
-        cartTable = new JTable(cartModel);
+        DefaultTableModel cartTableModel = new DefaultTableModel(new String[]{"Product", "Price", "Remove"}, 0);
+        JTable cartTable = new JTable(cartTableModel);
         cartTable.setRowHeight(40);
         cartTable.setFont(new Font("Arial", Font.PLAIN, 18));
         cartTable.getTableHeader().setFont(new Font("Arial", Font.BOLD, 18));
+        cartTable.getColumn("Remove").setCellRenderer(new ButtonRenderer());
+        cartTable.getColumn("Remove").setCellEditor(new ButtonEditor(cartTable)); // Pass cartTable
+        JScrollPane cartScrollPane = new JScrollPane(cartTable);
+        cartPanel.add(cartScrollPane, BorderLayout.CENTER);
 
-        JScrollPane scrollPane = new JScrollPane(cartTable);
-        cartPanel.add(scrollPane, BorderLayout.CENTER);
-
-        JPanel bottom = new JPanel();
-        bottom.setBackground(Color.WHITE);
-
-        JButton back = new JButton("Back to Shopping");
-        back.setFont(new Font("Arial", Font.BOLD, 18));
-        back.setBackground(new Color(52, 152, 219));
-        back.setForeground(Color.white);
-        back.setFocusPainted(false);
-        back.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
-        back.addActionListener(e -> cardLayout.show(mainPanel, "Home"));
-
-        JButton checkout = new JButton("Checkout");
-        checkout.setFont(new Font("Arial", Font.BOLD, 18));
-        checkout.setBackground(new Color(46, 204, 113));
-        checkout.setForeground(Color.white);
-        checkout.setFocusPainted(false);
-        checkout.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
-        checkout.addActionListener(e -> {
-            if (cart.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Your cart is empty!", "Checkout Error", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-            // Implement the checkout process (e.g., create an order in the database)
-            try {
-                if (connection != null) {
-                    // Start a transaction (optional, but good for data integrity)
-                    connection.setAutoCommit(false);
-
-                    // 1. Create an order
-                    String insertOrderQuery = "INSERT INTO orders (order_date, total_amount) VALUES (NOW(), ?)";
-                    PreparedStatement orderStatement = connection.prepareStatement(insertOrderQuery, Statement.RETURN_GENERATED_KEYS);
-                    double totalAmount = 0;
-                    for (Product p : cart) {
-                        totalAmount += Double.parseDouble(p.price.substring(1)); // Remove "₹" and parse
-                    }
-                    orderStatement.setDouble(1, totalAmount);
-                    orderStatement.executeUpdate();
-
-                    // Get the generated order ID
-                    ResultSet generatedKeys = orderStatement.getGeneratedKeys();
-                    int orderId = 0;
-                    if (generatedKeys.next()) {
-                        orderId = generatedKeys.getInt(1);
-                    } else {
-                        throw new SQLException("Failed to retrieve order ID.");
-                    }
-                    generatedKeys.close();
-                    orderStatement.close();
-
-                    // 2. Insert order items
-                    String insertOrderItemQuery = "INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)";
-                    PreparedStatement orderItemStatement = connection.prepareStatement(insertOrderItemQuery);
-                    for (Product p : cart) {
-                        // Get the product ID from the database, assuming you have the product name
-                        int productId = getProductIdByName(p.name);
-                        orderItemStatement.setInt(1, orderId);
-                        orderItemStatement.setInt(2, productId);
-                        orderItemStatement.setInt(3, 1); // Quantity is 1 for each item in this example
-                        orderItemStatement.setDouble(4, Double.parseDouble(p.price.substring(1))); // Remove "₹"
-                        orderItemStatement.executeUpdate();
-                    }
-                    orderItemStatement.close();
-
-                    // Commit the transaction
-                    connection.commit();
-                    connection.setAutoCommit(true); //reset
-                    JOptionPane.showMessageDialog(this, "Order Placed Successfully! Thank you for shopping.");
-                    cart.clear();
-                    refreshCartPage();
-                    cardLayout.show(mainPanel, "Home");
-                }
-            } catch (SQLException ex) {
-                try {
-                    connection.rollback();
-                    connection.setAutoCommit(true);
-                } catch (SQLException rollbackEx) {
-                    rollbackEx.printStackTrace();
-                }
-                JOptionPane.showMessageDialog(this, "Error placing order: " + ex.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
-                ex.printStackTrace();
-            }
-        });
-
-        bottom.add(back);
-        bottom.add(checkout);
-
-        cartPanel.add(bottom, BorderLayout.SOUTH);
+        for (Product product : cart) {
+            cartTableModel.addRow(new Object[]{product.name, product.price, "Remove"});
+        }
 
         return cartPanel;
     }
 
-    private int getProductIdByName(String productName) throws SQLException {
-        String query = "SELECT id FROM products WHERE name = ?";
-        PreparedStatement preparedStatement = connection.prepareStatement(query);
-        preparedStatement.setString(1, productName);
-        ResultSet resultSet = preparedStatement.executeQuery();
-        if (resultSet.next()) {
-            int id = resultSet.getInt("id");
-            resultSet.close();
-            preparedStatement.close();
-            return id;
-        } else {
-            resultSet.close();
-            preparedStatement.close();
-            throw new SQLException("Product not found: " + productName);
-        }
-    }
+    private void showProductsForCategory(String category) {
+        JPanel categoryPanel = new JPanel(new BorderLayout());
+        categoryPanel.setBackground(Color.WHITE);
 
-    private void refreshCartPage() {
-        cartModel.setRowCount(0);
-        for (Product p : cart) {
-            cartModel.addRow(new Object[]{p.name, p.price});
-        }
-    }
+        JLabel title = new JLabel(category + " Products", JLabel.CENTER);
+        title.setFont(new Font("Arial", Font.BOLD, 30));
+        title.setBorder(BorderFactory.createEmptyBorder(20, 0, 20, 0));
+        categoryPanel.add(title, BorderLayout.NORTH);
 
-    class Product {
-        String name, price;
-        boolean isAuction;
-        int id; // Add product ID
+        DefaultTableModel categoryTableModel = new DefaultTableModel(new String[]{"Product", "Price", "Add to Cart"}, 0);
+        JTable categoryTable = new JTable(categoryTableModel);
+        categoryTable.setRowHeight(40);
+        categoryTable.setFont(new Font("Arial", Font.PLAIN, 18));
+        categoryTable.getTableHeader().setFont(new Font("Arial", Font.BOLD, 18));
+        categoryTable.getColumn("Add to Cart").setCellRenderer(new ButtonRenderer());
+        categoryTable.getColumn("Add to Cart").setCellEditor(new ButtonEditor(categoryTable)); // Pass categoryTable
+        JScrollPane categoryScrollPane = new JScrollPane(categoryTable);
+        categoryPanel.add(categoryScrollPane, BorderLayout.CENTER);
 
-        Product(String name, String price, boolean isAuction, int id) {
-            this.name = name;
-            this.price = price;
-            this.isAuction = isAuction;
-            this.id = id;
-        }
-        Product(String name, String price) {
-            this.name = name;
-            this.price = price;
-        }
-    }
-
-    class ButtonRenderer extends JButton implements javax.swing.table.TableCellRenderer {
-        public ButtonRenderer() {
-            setOpaque(true);
-        }
-
-        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-            setText((value == null) ? "Add" : value.toString());
-            setBackground(new Color(46, 204, 113));
-            setForeground(Color.white);
-            setFont(new Font("Arial", Font.BOLD, 16));
-            return this;
-        }
-    }
-
-    class ButtonEditor extends DefaultCellEditor {
-        protected JButton button;
-        private String label;
-        private boolean clicked;
-        private int row;
-
-        public ButtonEditor() {
-            super(new JCheckBox());
-            button = new JButton();
-            button.setOpaque(true);
-            button.addActionListener(e -> fireEditingStopped());
-        }
-
-        public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
-            label = (value == null) ? "Add" : value.toString();
-            button.setText(label);
-            button.setBackground(new Color(46, 204, 113));
-            button.setForeground(Color.white);
-            button.setFont(new Font("Arial", Font.BOLD, 16));
-            clicked = true;
-            this.row = row;
-            return button;
-        }
-
-        public Object getCellEditorValue() {
-            if (clicked) {
-                JTable table = (JTable) button.getParent();
-                while (!(table instanceof JTable)) {
-                    table = (JTable) table.getParent();
-                }
-                String name = (String) table.getValueAt(row, 0);
-                String price = (String) table.getValueAt(row, 1);
-                cart.add(new Product(name, price));
-                JOptionPane.showMessageDialog(null, name + " added to cart!");
+        List<Product> products = categoryProducts.get(category);
+        if (products != null) { //check if the category exists
+            for (Product product : products) {
+                categoryTableModel.addRow(new Object[]{product.name, product.price, "Add"});
             }
-            clicked = false;
-            return label;
         }
 
-        public boolean stopCellEditing() {
-            clicked = false;
-            return super.stopCellEditing();
-        }
-
-        protected void fireEditingStopped() {
-            super.fireEditingStopped();
-        }
-    }
-
-    @Override
-    public void dispose() {
-        try {
-            if (connection != null) {
-                connection.close();
-                System.out.println("Database connection closed.");
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            super.dispose(); // Call superclass dispose() to ensure proper cleanup.
-        }
+        mainPanel.add(categoryPanel, category);
+        cardLayout.show(mainPanel, category);
     }
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(MarketplaceApp::new);
+    }
+}
+
+class Product {
+    String name;
+    String price;
+    boolean isAuction;
+    int id;
+
+    public Product(String name, String price, boolean isAuction, int id) {
+        this.name = name;
+        this.price = price;
+        this.isAuction = isAuction;
+        this.id = id;
+    }
+     public Product(String name, String price) {
+        this.name = name;
+        this.price = price;
+
+    }
+}
+
+class ButtonRenderer extends JButton implements TableCellRenderer {
+    public ButtonRenderer() {
+        setOpaque(true);
+    }
+
+    @Override
+    public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+        setText((value == null) ? "" : value.toString());
+        return this;
+    }
+}
+
+class ButtonEditor extends DefaultCellEditor {
+    private JButton button;
+    private String label;
+    private boolean isPushed;
+    private JTable table;
+    private MarketplaceApp parent; //reference to the main class
+    private DefaultTableModel tableModel; //reference to the table model
+
+    public ButtonEditor(JTable table) {
+        super(new JTextField());
+        this.table = table;
+        button = new JButton();
+        button.setOpaque(true);
+        this.parent = getAppInstance(); //get the instance
+        button.addActionListener(e -> {
+            fireEditingStopped();
+            if (isPushed) { //make sure the button is clicked
+                handleAction();
+            }
+
+        });
+    }
+
+     public ButtonEditor(JTable table, DefaultTableModel tableModel) { //constructor for auction
+        super(new JTextField());
+        this.table = table;
+        this.tableModel = tableModel;
+        button = new JButton();
+        button.setOpaque(true);
+        this.parent = getAppInstance();
+        button.addActionListener(e -> {
+            fireEditingStopped();
+            if (isPushed) {
+                handleAction();
+            }
+        });
+    }
+
+    //method to get the instance of the main class
+     private MarketplaceApp getAppInstance() {
+        Frame[] frames = JFrame.getFrames();
+        for (Frame frame : frames) {
+            if (frame instanceof MarketplaceApp) {
+                return (MarketplaceApp) frame;
+            }
+        }
+        return null;
+    }
+
+
+    @Override
+    public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
+        label = (value == null) ? "" : value.toString();
+        button.setText(label);
+        isPushed = true;
+        return button;
+    }
+
+    @Override
+    public Object getCellEditorValue() {
+        isPushed = false;
+        return label;
+    }
+
+    @Override
+    public boolean stopCellEditing() {
+        isPushed = false;
+        return super.stopCellEditing();
+    }
+
+    protected void fireEditingStopped() {
+        super.fireEditingStopped();
+    }
+
+    private void handleAction() {
+        int selectedRow = table.getSelectedRow();
+        if (selectedRow != -1) {
+            String productName = (String) table.getValueAt(selectedRow, 0);
+            String price = (String) table.getValueAt(selectedRow, 1);
+
+            if (table.getColumnName(table.getSelectedColumn()).equals("Remove")) {
+                // Handle remove from cart
+                if (parent != null) {
+                    for (int i = 0; i < parent.cart.size(); i++) { // Use parent to access the cart
+                        if (parent.cart.get(i).name.equals(productName)) {
+                            parent.cart.remove(i);
+                            ((DefaultTableModel) table.getModel()).removeRow(selectedRow);
+                            JOptionPane.showMessageDialog(null, productName + " removed from cart!");
+                            return; // Important: Exit after removing the item
+                        }
+                    }
+                }
+            } else if (table.getColumnName(table.getSelectedColumn()).equals("Place Bid")) {
+                 // Handle bid action
+                String currentBid = price;
+                String newBid = JOptionPane.showInputDialog(null,
+                        "Enter your bid for " + productName + " (Current Bid: " + currentBid + "):",
+                        "Place Bid",
+                        JOptionPane.PLAIN_MESSAGE);
+
+                if (newBid != null && !newBid.trim().isEmpty()) {
+                    try {
+                        double newBidValue = Double.parseDouble(newBid);
+                        double currentBidValue = Double.parseDouble(currentBid);
+
+                        if (newBidValue > currentBidValue) {
+                            table.setValueAt(String.valueOf(newBidValue), selectedRow, 1); //update the table
+                            //update the product price
+                            for (List<Product> productList : parent.categoryProducts.values()) {
+                                for (Product product : productList) {
+                                    if (product.name.equals(productName)) {
+                                        product.price = String.valueOf(newBidValue);
+                                        break;
+                                    }
+                                }
+                            }
+                            JOptionPane.showMessageDialog(null,
+                                    "Your bid of " + newBid + " has been placed successfully!",
+                                    "Bid Successful",
+                                    JOptionPane.INFORMATION_MESSAGE);
+                        } else {
+                            JOptionPane.showMessageDialog(null,
+                                    "Your bid must be higher than the current bid!",
+                                    "Invalid Bid",
+                                    JOptionPane.WARNING_MESSAGE);
+                        }
+                    } catch (NumberFormatException ex) {
+                        JOptionPane.showMessageDialog(null,
+                                "Invalid bid amount. Please enter a valid number.",
+                                "Error",
+                                JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+
+            } else if (table.getColumnName(table.getSelectedColumn()).equals("Add to Cart")) {
+                // Handle add to cart
+                 if (parent != null) {
+                     parent.cart.add(new Product(productName, price));
+                     JOptionPane.showMessageDialog(null, productName + " added to cart!");
+                 }
+            }
+        }
     }
 }
 
