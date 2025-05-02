@@ -1,10 +1,11 @@
+
 /* # 🛍️ Updated MarketplaceApp
 
 Update:
 ✅ Added a fully working search bar that displays filtered results from all categories in a dedicated panel.
 */
 
-
+import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.*;
