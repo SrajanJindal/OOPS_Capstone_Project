@@ -1,4 +1,9 @@
-//Final Code, updated as of 08:24 28-04-25
+
+/* # 🛍️ Updated MarketplaceApp
+Update:
+✅ Added a fully working search bar that displays filtered results from all categories in a dedicated panel.
+*/
+
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
@@ -97,6 +102,29 @@ public class MarketplaceApp extends JFrame {
         searchButton.setFocusPainted(false);
         searchButton.setBackground(Color.LIGHT_GRAY);
 
+        searchButton.addActionListener(e -> {
+            String query = searchField.getText().trim().toLowerCase();
+            if (query.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Please enter a search term.");
+                return;
+            }
+
+            ArrayList<Product> results = new ArrayList<>();
+            for (ArrayList<Product> products : categoryProducts.values()) {
+                for (Product p : products) {
+                    if (p.name.toLowerCase().contains(query)) {
+                        results.add(p);
+                    }
+                }
+            }
+
+            if (results.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "No products found for: " + query);
+            } else {
+                showSearchResults(results, query);
+            }
+        });
+
         searchPanel.add(searchField);
         searchPanel.add(searchButton);
         panel.add(searchPanel, BorderLayout.NORTH);
@@ -186,6 +214,51 @@ public class MarketplaceApp extends JFrame {
 
         mainPanel.add(productPanel, category);
         cardLayout.show(mainPanel, category);
+    }
+
+    private void showSearchResults(ArrayList<Product> results, String query) {
+        JPanel searchPanel = new JPanel(new BorderLayout());
+        searchPanel.setBackground(Color.WHITE);
+
+        JLabel title = new JLabel("Search Results for \"" + query + "\"", JLabel.CENTER);
+        title.setFont(new Font("Arial", Font.BOLD, 30));
+        title.setBorder(BorderFactory.createEmptyBorder(20, 0, 20, 0));
+        searchPanel.add(title, BorderLayout.NORTH);
+
+        String[] columns = {"Product", "Price", "Add to Cart"};
+        DefaultTableModel model = new DefaultTableModel(columns, 0);
+
+        for (Product p : results) {
+            model.addRow(new Object[]{p.name, p.price, "Add"});
+        }
+
+        JTable table = new JTable(model);
+        table.setRowHeight(40);
+        table.setFont(new Font("Arial", Font.PLAIN, 18));
+        table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 18));
+        table.getColumn("Add to Cart").setCellRenderer(new ButtonRenderer());
+        table.getColumn("Add to Cart").setCellEditor(new ButtonEditor());
+
+        JScrollPane scrollPane = new JScrollPane(table);
+        searchPanel.add(scrollPane, BorderLayout.CENTER);
+
+        JButton back = new JButton("Back to Home");
+        back.setFont(new Font("Arial", Font.BOLD, 18));
+        back.setBackground(new Color(52, 152, 219));
+        back.setForeground(Color.white);
+        back.setFocusPainted(false);
+        back.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+        back.addActionListener(e -> cardLayout.show(mainPanel, "Home"));
+
+        JPanel bottom = new JPanel();
+        bottom.setBackground(Color.WHITE);
+        bottom.add(back);
+
+        searchPanel.add(bottom, BorderLayout.SOUTH);
+
+        String panelName = "Search_" + System.currentTimeMillis();
+        mainPanel.add(searchPanel, panelName);
+        cardLayout.show(mainPanel, panelName);
     }
 
     private JPanel cartPanel;
